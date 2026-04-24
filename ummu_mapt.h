@@ -54,6 +54,8 @@ struct ummu_mapt_entry_node {
 
 #define INDEX_LEVEL_BITMAP_SIZE (MAX_LEVEL_ID_SIZE >> BITS_TO_BITMAP_SHIFT)
 
+#define INVALID_ADDR 0xFFF
+
 /* max address = 0x1 000 000 000 000 - 1 */
 #define MAX_ADDRESS_BITS 48U
 #define UMMU_MAX_TOKEN_NUM 2
@@ -177,6 +179,7 @@ struct ummu_data_info {
 	enum ummu_grant_op_type op;
 	struct ummu_mapt_info *mapt_info;
 	uint8_t lvl;
+	uint8_t head_flag;
 };
 
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
@@ -212,6 +215,7 @@ static const uint32_t g_mapt_range_bits[MAX_LEVEL_INDEX + 1U][2] = {{47, 39}, {3
 #define ADDR_FULL(low, high) (((uint64_t)(high) << 32UL) | (uint64_t)(low))
 #define TABLE_LVL_OFFSET(low, high) (((uint32_t)(high) << 20UL) | (uint32_t)(low))
 
+#define IS_RTE_IN_USE(addr) (((((uint64_t)addr) & INVALID_ADDR) == INVALID_ADDR) ? false : true)
 /* =========================================== common global variable ============================================ */
 extern struct ummu_ctx_info *get_ummu_ctx(void);
 void ummu_mapt_destroy(struct ummu_mapt_info *info);
