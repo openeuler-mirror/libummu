@@ -157,6 +157,15 @@ static int ummu_check_mode(enum ummu_mapt_mode mode)
 	return 0;
 }
 
+static int ummu_check_mapt_map(void *mapt_map)
+{
+	if (!mapt_map) {
+		UMMU_MAPT_ERROR_LOG("mapt_map is NULL!\n");
+		return -EINVAL;
+	}
+	return 0;
+}
+
 static int ummu_check_ebit(enum ummu_ebit_state e_bit)
 {
 	if (e_bit >= UMMU_EBIT_END || e_bit < UMMU_EBIT_OFF) {
@@ -833,13 +842,17 @@ int ummu_grant(uint32_t tid, void *data, size_t data_size, enum ummu_mapt_perm p
 	enum ummu_grant_op_type opt;
 	int ret;
 
-	if (ummu_ctx == NULL || seg_attr == NULL) {
-		UMMU_MAPT_ERROR_LOG("UMMU context %s NULL, seg_attr %s NULL.\n",
-			ummu_ctx == NULL ? "is" : "not", seg_attr == NULL ? "is" : "not");
+	if (seg_attr == NULL) {
+		UMMU_MAPT_ERROR_LOG("seg_attr is NULL.\n");
 		return -EINVAL;
 	}
 
 	(void)pthread_mutex_lock(&ummu_ctx->ctx_mutex);
+	ret = ummu_check_mapt_map(ummu_ctx->mapt_map);
+	if (ret != 0) {
+		(void)pthread_mutex_unlock(&ummu_ctx->ctx_mutex);
+		return ret;
+	}
 	mapt_info = get_mapt_info_by_tid(ummu_ctx, tid);
 	if (mapt_info == NULL) {
 		(void)pthread_mutex_unlock(&ummu_ctx->ctx_mutex);
@@ -870,10 +883,10 @@ int ummu_grant(uint32_t tid, void *data, size_t data_size, enum ummu_mapt_perm p
 	}
 	data_info.op = opt;
 	ret = ummu_grant_imp(mapt_info, &data_info);
-	(void)pthread_mutex_unlock(&ummu_ctx->ctx_mutex);
 	if (ret == 0) {
 		ret = ummu_update_info(opt, mapt_info, &data_info);
 	}
+	(void)pthread_mutex_unlock(&ummu_ctx->ctx_mutex);
 	(void)pthread_mutex_unlock(&mapt_info->mapt_mutex);
 	data_info.tokenval = 0;
 	return ret;
@@ -903,12 +916,18 @@ static int ummu_ungrant_data(uint32_t tid, void *data, size_t size, uint32_t tok
 	enum ummu_grant_op_type opt;
 	int ret;
 
-	if ((ummu_ctx == NULL) || (size == 0)) {
-		UMMU_MAPT_ERROR_LOG("Ummu ctx is null or size=%lu is zero.\n", size);
+	if (size == 0) {
+		UMMU_MAPT_ERROR_LOG("Ummu ungrant size is zero.\n");
 		return -ENOMEM;
 	}
 
 	(void)pthread_mutex_lock(&ummu_ctx->ctx_mutex);
+	ret = ummu_check_mapt_map(ummu_ctx->mapt_map);
+	if (ret != 0) {
+		(void)pthread_mutex_unlock(&ummu_ctx->ctx_mutex);
+		return ret;
+	}
+
 	mapt_info = get_mapt_info_by_tid(ummu_ctx, tid);
 	if (mapt_info == NULL) {
 		(void)pthread_mutex_unlock(&ummu_ctx->ctx_mutex);
@@ -942,12 +961,12 @@ static int ummu_ungrant_data(uint32_t tid, void *data, size_t size, uint32_t tok
 	data_info.op = opt;
 
 	ret = ummu_ungrant_imp(mapt_info, &data_info);
-	(void)pthread_mutex_unlock(&ummu_ctx->ctx_mutex);
 	if (ret == 0) {
 		ret = ummu_update_info(opt, mapt_info, &data_info);
 	}
 
 	ummu_plbi_va_cmd(mapt_info, data_info.data_base, data_info.data_size);
+	(void)pthread_mutex_unlock(&ummu_ctx->ctx_mutex);
 	(void)pthread_mutex_unlock(&mapt_info->mapt_mutex);
 
 out:
@@ -1024,13 +1043,14 @@ int ummu_free_tid(uint32_t tid)
 {
 	struct ummu_ctx_info *ummu_ctx = get_ummu_ctx();
 	struct ummu_mapt_info *mapt_info;
-
-	if (ummu_ctx == NULL) {
-		UMMU_MAPT_ERROR_LOG("Ummu ctx is null.\n");
-		return -EINVAL;
-	}
+	int ret;
 
 	(void)pthread_mutex_lock(&ummu_ctx->ctx_mutex);
+	ret = ummu_check_mapt_map(ummu_ctx->mapt_map);
+	if (ret != 0) {
+		(void)pthread_mutex_unlock(&ummu_ctx->ctx_mutex);
+		return ret;
+	}
 	mapt_info = (struct ummu_mapt_info *)ummu_map_get(ummu_ctx->mapt_map, tid);
 	if (mapt_info == NULL || mapt_info->valid == 0) {
 		(void)pthread_mutex_unlock(&ummu_ctx->ctx_mutex);
@@ -1054,9 +1074,8 @@ int ummu_allocate_tid(struct ummu_tid_attr *tid_attr, uint32_t *tid)
 	struct ummu_mapt_info *mapt_info;
 	int ret;
 
-	if (ummu_ctx == NULL || tid_attr == NULL) {
-		UMMU_MAPT_ERROR_LOG("UMMU context %s NULL, tid_attr %s NULL.\n",
-			ummu_ctx == NULL ? "is" : "not", tid_attr == NULL ? "is" : "not");
+	if (tid_attr == NULL) {
+		UMMU_MAPT_ERROR_LOG("tid_attr is NULL.\n");
 		return -EINVAL;
 	}
 
@@ -1067,6 +1086,11 @@ int ummu_allocate_tid(struct ummu_tid_attr *tid_attr, uint32_t *tid)
 	info.mode = tid_attr->mode;
 
 	(void)pthread_mutex_lock(&ummu_ctx->ctx_mutex);
+	ret = ummu_check_mapt_map(ummu_ctx->mapt_map);
+	if (ret != 0) {
+		(void)pthread_mutex_unlock(&ummu_ctx->ctx_mutex);
+		return ret;
+	}
 	ret = ummu_get_tid(ummu_ctx->shared_fd, &info);
 	if (ret != 0) {
 		UMMU_MAPT_ERROR_LOG("Get tid failed, ret = %d.\n", ret);
