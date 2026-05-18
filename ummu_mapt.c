@@ -108,6 +108,7 @@ static struct ummu_mapt_info *ummu_alloc_mapt_mem(struct ummu_tid_info *info)
 	mapt_info->valid = 1;
 	mapt_info->double_plbi = info->hw_cap & HW_CAP_DOUBLE_PLBI;
 	mapt_info->kcmd_plbi = info->hw_cap & HW_CAP_KCMD_PLBI;
+	mapt_info->positive_plbi = info->hw_cap & HW_CAP_PPLBI;
 	mapt_info->free_bit = info->hw_cap & HW_CAP_FREE_BIT;
 
 	return mapt_info;
@@ -927,6 +928,11 @@ static int ummu_grant_imp(struct ummu_mapt_info *mapt_info, struct ummu_data_inf
 		UMMU_MAPT_ERROR_LOG("Mode is invalid, only support entry or table mode.\n");
 		return -EINVAL;
 	}
+
+	if (mapt_info->positive_plbi) {
+		return ret;
+	}
+
 	if (data->op == UMMU_ADD_TOKEN || ret != 0) {
 		ummu_plbi_va_cmd(mapt_info, data->data_base, data->data_size);
 	}

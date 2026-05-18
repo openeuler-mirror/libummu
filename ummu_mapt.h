@@ -109,6 +109,7 @@ struct ummu_mapt_info {
 	uint16_t valid;
 	uint8_t double_plbi;
 	uint8_t kcmd_plbi;
+	uint8_t positive_plbi;
 	uint8_t free_bit;
 	enum ummu_mapt_mode mode;
 	/* Notice: when using mapt_mutex, you must ensure that g_ummu_ctx->ctx_mutex is already locked. */
