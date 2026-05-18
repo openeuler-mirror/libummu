@@ -109,6 +109,7 @@ struct ummu_mapt_info {
 	uint16_t valid;
 	uint8_t double_plbi;
 	uint8_t kcmd_plbi;
+	uint8_t free_bit;
 	enum ummu_mapt_mode mode;
 	/* Notice: when using mapt_mutex, you must ensure that g_ummu_ctx->ctx_mutex is already locked. */
 	pthread_mutex_t mapt_mutex;
@@ -142,7 +143,8 @@ struct ummu_mapt_table_node {
 	uint32_t next_block : 1;
 	uint32_t e_bit : 1;
 	uint32_t permission : 6;
-	uint32_t reserved_0 : 2;
+	uint32_t f_bit : 1;
+	uint32_t reserved_0 : 1;
 	uint32_t next_lv_offset_low : 20;
 
 	uint32_t next_lv_offset_high : 10;
@@ -215,7 +217,7 @@ static const uint32_t g_mapt_range_bits[MAX_LEVEL_INDEX + 1U][2] = {{47, 39}, {3
 #define ADDR_FULL(low, high) (((uint64_t)(high) << 32UL) | (uint64_t)(low))
 #define TABLE_LVL_OFFSET(low, high) (((uint32_t)(high) << 20UL) | (uint32_t)(low))
 
-#define IS_RTE_IN_USE(addr) (((((uint64_t)addr) & INVALID_ADDR) == INVALID_ADDR) ? false : true)
+#define IS_RTE_IN_USE(addr) (((((uint64_t)(addr)) & INVALID_ADDR) == INVALID_ADDR) ? false : true)
 /* =========================================== common global variable ============================================ */
 extern struct ummu_ctx_info *get_ummu_ctx(void);
 void ummu_mapt_destroy(struct ummu_mapt_info *info);
