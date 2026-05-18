@@ -103,6 +103,8 @@ void ummu_kcmd_plbi(int fd, struct ummu_tid_info *info, uint32_t opcode)
 		ret = ioctl(fd, UMMU_IOCPLBI_VA, info);
 	} else if (opcode == PLBI_ALL_OP) {
 		ret = ioctl(fd, UMMU_IOCPLBI_ALL, info);
+	} else {
+		UMMU_MAPT_WARN_LOG("Invalid plbi opcode.\n");
 	}
 
 	if (ret != 0) {
