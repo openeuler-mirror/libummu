@@ -120,8 +120,10 @@ enum ummu_grant_op_type ummu_grant_check(struct ummu_mapt_info *mapt_info, struc
 	switch (comp_ret) {
 		case RANGE_MATCH:
 			return ummu_table_param_check(data, grant_param);
-		case RANGE_OVERLAP:
+		case RANGE_OVERLAP: {
+			UMMU_MAPT_ERROR_LOG("Address range overlap.\n");
 			return UMMU_OP_END;
+		}
 		case RANGE_NOT_EXIST:
 			return UMMU_GRANT;
 		default: {

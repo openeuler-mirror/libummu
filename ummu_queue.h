@@ -73,7 +73,7 @@ struct ummu_mapt_queue_args {
 
 int ummu_queue_create(struct ummu_mapt_info *mapt_info, struct ummu_tid_info *info, int fd);
 int ummu_send_cmd(struct ummu_mapt_cmd_entry *cmd_plbi, struct ummu_mapt_info *mapt_info, uint32_t ummu_index);
-void ummu_plbi_va_cmd(struct ummu_mapt_info *mapt_info, struct ummu_data_info *data_info);
+void ummu_plbi_va_cmd(struct ummu_mapt_info *mapt_info, uint64_t va, uint64_t size);
 void ummu_send_user_all(struct ummu_mapt_info *mapt_info);
 void ummu_queue_destroy(struct ummu_mapt_info *mapt_info);
 bool queue_has_space(uint16_t pi, uint16_t ci, uint16_t cmd_que_size, uint16_t n);
