@@ -165,16 +165,16 @@ static void ummu_send_plbi(struct ummu_mapt_cmd_entry *cmd_plbi, struct ummu_map
 	ummu_kcmd_plbi(ummu_ctx->shared_fd, info, cmd_plbi->opcode);
 }
 
-void ummu_plbi_va_cmd(struct ummu_mapt_info *mapt_info, struct ummu_data_info *data_info)
+void ummu_plbi_va_cmd(struct ummu_mapt_info *mapt_info, uint64_t va, uint64_t size)
 {
 	struct ummu_mapt_cmd_entry cmd_va_entry = { 0 };
 	struct ummu_tid_info info = {.tid = mapt_info->tid,
-				     .va = data_info->data_base,
-				     .size = data_info->data_size};
+				     .va = va,
+				     .size = size};
 
 	cmd_va_entry.opcode = PLBI_VA_OP;
-	cmd_va_entry.range = get_minist_log2size_range(data_info->data_size);
-	cmd_va_entry.addr = data_info->data_base;
+	cmd_va_entry.range = get_minist_log2size_range(size);
+	cmd_va_entry.addr = va;
 
 	ummu_send_plbi(&cmd_va_entry, mapt_info, &info);
 }
