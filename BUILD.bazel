@@ -1,0 +1,48 @@
+package(default_visibility = ["//visibility:public"])
+
+UMMU_SRCS = glob(["*.c", "*.cpp"])
+UMMU_HDRS = glob([
+    "*.h",
+    "include/*.h",
+    "kernel_headers/*.h",
+])
+UMMU_INCLUDES = [
+    "include",
+    "kernel_headers",
+]
+
+cc_library(
+    name = "ummu_internal",
+    srcs = UMMU_SRCS,
+    hdrs = UMMU_HDRS,
+    includes = UMMU_INCLUDES,
+    copts = [
+        "-fstack-protector-all",
+    ],
+    cxxopts = ["-std=c++11", "-Wno-error"],
+    linkstatic = True,
+)
+
+# Target name "ummu" -> bazel-bin/libummu.so
+cc_binary(
+    name = "ummu",
+    linkshared = True,
+    deps = [":ummu_internal"],
+    linkopts = [
+        "-Wl,-z,relro,-z,now",
+    ],
+)
+
+# Copy for -lummu style linking: NEEDED records libummu.so (not a Bazel path).
+genrule(
+    name = "ummu_linklib",
+    srcs = [":ummu"],
+    outs = ["linklib/libummu.so"],
+    cmd = "mkdir -p $(@D) && cp $(location :ummu) $@",
+)
+
+cc_library(
+    name = "ummu_api",
+    hdrs = UMMU_HDRS,
+    includes = UMMU_INCLUDES,
+)
