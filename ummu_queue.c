@@ -179,6 +179,20 @@ void ummu_plbi_va_cmd(struct ummu_mapt_info *mapt_info, uint64_t va, uint64_t si
 	ummu_send_plbi(&cmd_va_entry, mapt_info, &info);
 }
 
+void ummu_plbi_f_bit_cmd(struct ummu_mapt_info *mapt_info, uint32_t next_lvl_idx, uint32_t next_lvl_offset)
+{
+	struct ummu_mapt_cmd_free_bit_entry cmd_entry = { 0 };
+	struct ummu_tid_info info = {.tid = mapt_info->tid,
+				     .va = 0,
+				     .size = 0};
+
+	cmd_entry.opcode = PLBI_USR_N;
+	cmd_entry.next_lvl_idx = next_lvl_idx;
+	cmd_entry.next_lvl_offset = next_lvl_offset;
+
+	ummu_send_plbi((struct ummu_mapt_cmd_entry *)&cmd_entry, mapt_info, &info);
+}
+
 void ummu_send_user_all(struct ummu_mapt_info *mapt_info)
 {
 	struct ummu_mapt_cmd_entry cmd_usr_all_entry = {.opcode = PLBI_ALL_OP};
