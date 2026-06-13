@@ -9,13 +9,11 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "ummu_log.h"
 #include "ummu_mapt.h"
 #include "ummu_map.h"
-
-#include <stdlib.h>
-#include <string.h>
 
 #define DECIMAL 10U
 
