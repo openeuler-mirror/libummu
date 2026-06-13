@@ -984,7 +984,7 @@ int ummu_grant(uint32_t tid, void *data, size_t data_size, enum ummu_mapt_perm p
 {
 	struct ummu_ctx_info *ummu_ctx = get_ummu_ctx();
 	struct ummu_mapt_info *mapt_info;
-	struct ummu_data_info data_info;
+	struct ummu_data_info data_info = {0};
 	enum ummu_grant_op_type opt;
 	int ret;
 
@@ -1058,7 +1058,7 @@ static int ummu_ungrant_data(uint32_t tid, void *data, size_t size, uint32_t tok
 {
 	struct ummu_ctx_info *ummu_ctx = get_ummu_ctx();
 	struct ummu_mapt_info *mapt_info;
-	struct ummu_data_info data_info;
+	struct ummu_data_info data_info = {0};
 	enum ummu_grant_op_type opt;
 	int ret;
 
@@ -1166,7 +1166,7 @@ static void ummu_mapt_table_ctx_uninit(struct ummu_mapt_info *mapt_info)
 
 static void ummu_mapt_entry_uninit(struct ummu_mapt_info *mapt_info)
 {
-	ummu_free_core_buf(BASE_MODE_ENTRY_BLOCK, (void *)mapt_info->block_base.entry_block, 0);
+	ummu_free_core_buf(BASE_MODE_ENTRY_BLOCK, (void *)mapt_info->block_base.entry_block, BLOCK_SIZE_4K);
 }
 
 void ummu_mapt_destroy(struct ummu_mapt_info *info)
@@ -1209,6 +1209,7 @@ int ummu_free_tid(uint32_t tid)
 	ummu_mapt_destroy(mapt_info);
 	ummu_put_tid(ummu_ctx->shared_fd, tid);
 	(void)pthread_mutex_unlock(&ummu_ctx->ctx_mutex);
+	UMMU_MAPT_INFO_LOG("free tid = %u\n", tid);
 
 	return 0;
 }
@@ -1258,6 +1259,7 @@ int ummu_allocate_tid(struct ummu_tid_attr *tid_attr, uint32_t *tid)
 	}
 	(void)pthread_mutex_unlock(&ummu_ctx->ctx_mutex);
 	*tid = info.tid;
+	UMMU_MAPT_INFO_LOG("allocate tid = %u, mapt_mode = %u\n", info.tid, info.mode);
 
 	return 0;
 
