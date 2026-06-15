@@ -45,10 +45,13 @@ void *ummu_get_core_buf(unsigned int tid, enum ummu_buf_mode mode, size_t size, 
 
 void ummu_free_core_buf(enum ummu_buf_mode mode, void *buf, size_t size)
 {
+	if (size == 0 || buf == NULL) {
+		UMMU_MAPT_ERROR_LOG("size = %zu or buf is not correct!\n", size);
+		return;
+	}
+		
 	switch (mode) {
 		case BASE_MODE_ENTRY_BLOCK:
-			munmap(buf, BLOCK_SIZE_4K);
-			break;
 		case BASE_MODE_TABLE_BLOCK:
 		case BASE_MODE_QUEUE:
 			munmap(buf, size);
