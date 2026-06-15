@@ -104,7 +104,6 @@ void ummu_destroy_seg_tree(uint64_t *seg_tree, clear_seg_node cleaner)
 	}
 
 	delete table;
-	table = nullptr;
 	*seg_tree = 0;
 }
 
