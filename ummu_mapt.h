@@ -41,18 +41,9 @@ struct ummu_mapt_entry_node {
 
 #define MAX_LEVEL_INDEX 3U
 
-/* (64K / (sizeof(ummu_mapt_table_node) * 512)) */
-#define PER_MAPT_LEVEL_BLOCK_CNT 4U
-
 #define INDEX_MAX_SIZE 512UL
 
 #define MAX_MAPT_ENTRY_INDEX 512U
-
-#define MAX_LEVEL_ID_SIZE (INDEX_MAX_SIZE * PER_MAPT_LEVEL_BLOCK_CNT)
-
-#define BITS_TO_BITMAP_SHIFT 6U
-
-#define INDEX_LEVEL_BITMAP_SIZE (MAX_LEVEL_ID_SIZE >> BITS_TO_BITMAP_SHIFT)
 
 #define INVALID_ADDR 0xFFF
 
@@ -65,15 +56,18 @@ struct ummu_mapt_block {
 	size_t blk_size;
 	uint32_t block_id;
 	uint16_t level_cnt;
-	uint16_t level_entry_cnt[PER_MAPT_LEVEL_BLOCK_CNT];
+	uint16_t *level_entry_cnt;
+	uint16_t lvl_block_cnt;
 };
 
 struct ummu_mapt_table_ctx {
 	int expan;
 	uint16_t block_cnt;
+	uint16_t lvl_block_cnt;
 	size_t blk_exp_size;
 	uint64_t granted_addr_mng;
-	unsigned long level_block_bitmap[INDEX_LEVEL_BITMAP_SIZE];
+	uint32_t level_block_bitmap_size;
+	unsigned long *level_block_bitmap;
 
 	struct ummu_mapt_block *mapt_block_base;
 	void *mapt_block_array[INDEX_MAX_SIZE];
