@@ -25,6 +25,18 @@ int ummu_ungrant(uint32_t tid, void *data, size_t size);
 int ummu_ungrant_by_token(uint32_t tid, void *data, size_t size, uint32_t token_val);
 
 int ummu_free_tid(uint32_t tid);
+
+typedef struct ummu_log_backend {
+	const char *name;
+	void (*emit)(int level, char *msg);
+	/* reserved for future API extension */
+	void *reserved[4];
+} ummu_log_backend_t;
+
+int ummu_log_register_backend(ummu_log_backend_t *backend);
+
+void ummu_log_restore_default(void);
+
 #ifdef __cplusplus
 }
 #endif
