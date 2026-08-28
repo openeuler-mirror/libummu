@@ -15,13 +15,10 @@
 #include "ummu_mapt.h"
 #include "ummu_map.h"
 
-#define DECIMAL 10U
-
 static struct ummu_ctx_info g_ummu_ctx = {
 	.ctx_mutex = PTHREAD_MUTEX_INITIALIZER,
 	.shared_fd = -1,
 };
-ummu_vlog_level_t g_loglevel;
 
 struct ummu_ctx_info *get_ummu_ctx(void)
 {
@@ -31,35 +28,6 @@ struct ummu_ctx_info *get_ummu_ctx(void)
 static void ummu_mapt_info_destroy(void *info)
 {
 	ummu_mapt_destroy((struct ummu_mapt_info *)info);
-}
-
-static void ummu_get_log_level(void)
-{
-	FILE *fd = fopen("/usr/lib64/ummu_log_level", "r");
-	char buffer[MAX_LEVEL_INDEX] = { 0 };
-	long input_log_level;
-	char *end_ptr = NULL;
-
-	g_loglevel = UMMU_VLOG_LEVEL_INFO;
-	if (fd == NULL) {
-		UMMU_MAPT_WARN_LOG("Use UMMU default loglevel = %u.\n", g_loglevel);
-		return;
-	}
-	if (fread(buffer, sizeof(char), 1, fd) < 1) {
-		(void)fclose(fd);
-		UMMU_MAPT_ERROR_LOG("Read ummu_log_level failed, use default loglevel = %u.\n", g_loglevel);
-		return;
-	}
-
-	errno = 0;
-	input_log_level = strtol(buffer, &end_ptr, DECIMAL);
-	if (errno == 0 && input_log_level >= (long)UMMU_VLOG_LEVEL_EMERG &&
-		input_log_level < (long)UMMU_VLOG_LEVEL_MAX) {
-		g_loglevel = (ummu_vlog_level_t)input_log_level;
-	}
-
-	UMMU_MAPT_INFO_LOG("UMMU log level = %u.\n", g_loglevel);
-	(void)fclose(fd);
 }
 
 static int ummu_ctx_init(struct ummu_ctx_info *ctx)
@@ -127,7 +95,7 @@ __attribute__((destructor)) static void ummu_uninit(void)
 
 __attribute__((constructor)) static void ummu_init(void)
 {
-	ummu_get_log_level();
+	ummu_init_log_level();
 
 	if (pthread_atfork(fork_prepare, parent_process_after_fork, child_process_after_fork) != 0) {
 		UMMU_MAPT_WARN_LOG("Set fork handler failed.\n");

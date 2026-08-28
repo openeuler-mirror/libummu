@@ -1,4 +1,4 @@
-.TH "LIBUMMU" "1" "libummu"
+.TH "LIBUMMU" "3" "libummu"
 .SH NAME
 libummu \- overview of UMMU library
 .SH SYNOPSIS
@@ -14,7 +14,7 @@ Each memory segment can be authorized by three items: read or write permission, 
 Token value and ebit are optional.
 
 .SH API DESCRIPTION
-.B ummu_allocate_tid(struct ummu_tid_attr \*tid_attr, uint32_t \*tid)
+.B ummu_allocate_tid(struct ummu_tid_attr *tid_attr, uint32_t *tid)
   Allocate unique ID for user-mode process and I/O device.
   - parameters
     - input parameter: tid_attr
@@ -28,7 +28,7 @@ Token value and ebit are optional.
   - struct ummu_tid_attr
   	- enum ummu_mapt_mode mode
 
-.B ummu_grant(uint32_t tid, void \*data, size_t data_size,enum ummu_mapt_perm perm, struct ummu_seg_attr \*seg_attr)
+.B ummu_grant(uint32_t tid, void *data, size_t data_size,enum ummu_mapt_perm perm, struct ummu_seg_attr *seg_attr)
   Add access permission for one memory segment, and bind this memory segment with one tid.
   - parameters
     - input parameters:
@@ -55,7 +55,7 @@ Token value and ebit are optional.
       - UMMU_EBIT_OFF: enable ebit check
       - UMMU_EBIT_ON: disable ebit check
 
-.B ummu_ungrant(uint32_t tid, void \*data, size_t size)
+.B ummu_ungrant(uint32_t tid, void *data, size_t size)
   Remove access permission for one memory segment, and unbind memory segment with tid.
   - parameters
     - input parameters:
@@ -66,7 +66,7 @@ Token value and ebit are optional.
       0: success
       others: failed
 
-.B ummu_ungrant_by_token(uint32_t tid, void \*data, size_t size, uint32_t token_val)
+.B ummu_ungrant_by_token(uint32_t tid, void *data, size_t size, uint32_t token_val)
   Remove one token value from the permssion table of target memory segment.
   - parameters
     - input parameters:
@@ -86,4 +86,22 @@ Token value and ebit are optional.
     - return value:
       0: success
       others: failed
+
+.B ummu_log_register_backend(ummu_log_backend_t *backend)
+  Register a custom log backend to replace the default syslog output.
+  - parameters
+    - input parameter: backend
+    - return value:
+      0: success
+      others: failed (e.g. -EINVAL if backend or backend->emit is NULL)
+  - struct ummu_log_backend
+    - const char *name: backend identifier for logging purposes
+    - void (*emit)(int level, char *msg): callback function to output log messages
+
+.B ummu_log_restore_default(void)
+  Restore the log backend to the default syslog output.
+  - parameters
+    - none
+    - return value:
+      none
 

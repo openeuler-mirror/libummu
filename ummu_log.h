@@ -14,6 +14,10 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum ummu_vlog_level {
 	UMMU_VLOG_LEVEL_EMERG = 0,
 	UMMU_VLOG_LEVEL_ALERT = 1,
@@ -26,44 +30,10 @@ typedef enum ummu_vlog_level {
 	UMMU_VLOG_LEVEL_MAX = 8,
 } ummu_vlog_level_t;
 
-#define MAX_LOG_LEN 256
-#define UMMU_MAPT_LOG_TAG "LogTag_UMMU_MAPT"
-
-extern ummu_vlog_level_t g_loglevel;
-
-static inline bool ummu_log_drop(ummu_vlog_level_t level)
-{
-	return ((level > g_loglevel) ? true : false);
-}
-
-static void ummu_log(const char *function, int line, ummu_vlog_level_t level, const char *format, ...)
+bool ummu_log_drop(ummu_vlog_level_t level);
+void ummu_log(const char *function, int line, ummu_vlog_level_t level, const char *format, ...)
 	__attribute__ ((format (gnu_printf, 4, 5)));
-static void ummu_log(const char *function, int line, ummu_vlog_level_t level, const char *format, ...)
-{
-	va_list va;
-	int ret;
-
-	va_start(va, format);
-	char newformat[MAX_LOG_LEN + 1] = {0};
-	char logmsg[MAX_LOG_LEN + 1] = {0};
-
-	/* add log head info, "UMMU_MAPT_LOG_TAG|function|[line]|format" */
-	ret = snprintf(newformat, MAX_LOG_LEN, "[%d]%s|%s[%d]|%s", getpid(), UMMU_MAPT_LOG_TAG, function, line, format);
-	if (ret <= 0 || ret >= (int)sizeof(newformat)) {
-		va_end(va);
-		return;
-	}
-
-	ret = vsnprintf(logmsg, MAX_LOG_LEN, newformat, va);
-	if (ret == -1) {
-		(void)printf("logmsg size exceeds MAX_LOG_LEN size : %d\n", MAX_LOG_LEN);
-		va_end(va);
-		return;
-	}
-
-	syslog((int)level, "%s", logmsg);
-	va_end(va);
-}
+void ummu_init_log_level(void);
 
 #define UMMU_LOG(l, ...)						    \
 	if (!ummu_log_drop(UMMU_VLOG_LEVEL_##l)) {			      \
@@ -77,6 +47,10 @@ static void ummu_log(const char *function, int line, ummu_vlog_level_t level, co
 #define UMMU_MAPT_WARN_LOG(...) UMMU_LOG(WARNING, __VA_ARGS__)
 
 #define UMMU_MAPT_DEBUG_LOG(...) UMMU_LOG(DEBUG, __VA_ARGS__)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 
