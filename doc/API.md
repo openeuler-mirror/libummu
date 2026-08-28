@@ -71,6 +71,26 @@
       0: success
       others: failed
 
+# ummu_log_register_backend(ummu_log_backend_t \*backend)
+  Register a custom log backend to replace the default syslog output.
+  - parameters
+    - input parameter:
+      - backend: custom log backend containing name and emit callback
+    - return value:
+      0: success
+      others: failed (e.g. -EINVAL if backend or backend->emit is NULL)
+  - struct ummu_log_backend
+    - const char \*name: backend identifier for logging purposes
+    - void (\*emit)(int level, char \*msg): callback function to output log messages
+
+# ummu_log_restore_default(void)
+  Restore the log backend to the default syslog output.
+  - parameters
+    - input parameters:
+      - none
+    - return value:
+      - none
+
 # Demos
   Below is a C demo. It shows how the user-mode process allocates memory and shares with I/O device.
 
@@ -97,4 +117,3 @@
     ummu_free_tid(info.tid);
 
     munmap(info.va, info.size);
-
