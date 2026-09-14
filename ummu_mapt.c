@@ -66,25 +66,36 @@ static int ummu_mapt_table_ctx_init(struct ummu_mapt_info *mapt_info, struct umm
 	if (ret != 0) {
 		UMMU_MAPT_ERROR_LOG("Init granted addr manager failed.\n");
 		ret = -ENOMEM;
-		goto err_create_rbtree;
+		goto err_create_seg_mng;
 	}
 
 	mapt_info->block_base.table_ctx = table_ctx;
 	mapt_info->block_base.table_ctx->expan =
 		(info->hw_cap & HW_CAP_EXPAN) ? true : false;
 	mapt_info->block_base.table_ctx->blk_exp_size = info->blk_exp_size;
+	table_ctx->lvl_block_cnt = (uint16_t)(info->blk_exp_size /
+		(MAX_MAPT_ENTRY_INDEX * sizeof(struct ummu_mapt_table_node)));
+	table_ctx->level_block_bitmap_size = (uint32_t)(INDEX_MAX_SIZE * table_ctx->lvl_block_cnt);
+	table_ctx->level_block_bitmap = (unsigned long *)calloc(1,
+		DIV_ROUND_UP(table_ctx->level_block_bitmap_size, 8));
+	if (table_ctx->level_block_bitmap == NULL) {
+		UMMU_MAPT_ERROR_LOG("Alloc level_block_bitmap failed.\n");
+		ret = -ENOMEM;
+		goto err_level_block_bitmap;
+	}
 
 	root = ummu_alloc_level_block(mapt_info, &pre_node, block);
 	if (root == NULL) {
-		UMMU_MAPT_ERROR_LOG("Alloc level block failed.\n");
 		ret = -errno;
 		goto err_alloc_level_block;
 	}
 
 	return 0;
 err_alloc_level_block:
+	free(table_ctx->level_block_bitmap);
+err_level_block_bitmap:
 	ummu_destroy_seg_mng(&table_ctx->granted_addr_mng);
-err_create_rbtree:
+err_create_seg_mng:
 	free(table_ctx);
 err_malloc_table_ctx:
 	table_ctx = NULL;
@@ -144,6 +155,7 @@ static struct ummu_mapt_info *ummu_mapt_create(struct ummu_tid_info *info)
 err_mapt_init:
 	ummu_queue_destroy(mapt_info);
 err_queue_create:
+	(void)pthread_mutex_destroy(&mapt_info->mapt_mutex);
 	free(mapt_info);
 err_alloc_mapt_info:
 	return NULL;
@@ -376,7 +388,6 @@ static int ummu_table_fill_head_node_free_bit(struct ummu_data_info *data_info, 
 	if (cur_node->type == 1) {
 		next_lvl_blk_base = ummu_alloc_level_block(data_info->mapt_info, cur_node, mapt_blk);
 		if (next_lvl_blk_base == NULL) {
-			UMMU_MAPT_ERROR_LOG("Alloc new level_block failed.\n");
 			return -errno;
 		}
 		cur_node->type = 0;
@@ -424,7 +435,6 @@ static int ummu_table_fill_head_node(struct ummu_data_info *data_info, uint32_t 
 		if (cur_node->type == 1) {
 			next_lvl_blk_base = ummu_alloc_level_block(data_info->mapt_info, cur_node, mapt_blk);
 			if (next_lvl_blk_base == NULL) {
-				UMMU_MAPT_ERROR_LOG("Alloc new level_block failed.\n");
 				return -errno;
 			}
 			cur_node->type = 0;
@@ -1142,9 +1152,9 @@ static void ummu_mapt_table_ctx_uninit(struct ummu_mapt_info *mapt_info)
 		ummu_destroy_seg_mng(&table_ctx->granted_addr_mng);
 	}
 
-	FOR_EACH_SET_BIT(idx, table_ctx->level_block_bitmap, MAX_LEVEL_ID_SIZE) {
-		block_id = idx / PER_MAPT_LEVEL_BLOCK_CNT;
-		if ((idx % PER_MAPT_LEVEL_BLOCK_CNT) != 0) {
+	FOR_EACH_SET_BIT(idx, table_ctx->level_block_bitmap, table_ctx->level_block_bitmap_size) {
+		block_id = idx / table_ctx->lvl_block_cnt;
+		if ((idx % table_ctx->lvl_block_cnt) != 0) {
 			continue;
 		}
 		block = (struct ummu_mapt_block *)table_ctx->mapt_block_array[block_id];
@@ -1154,10 +1164,12 @@ static void ummu_mapt_table_ctx_uninit(struct ummu_mapt_info *mapt_info)
 			continue;
 		}
 		ummu_free_core_buf(BASE_MODE_TABLE_BLOCK, (void *)block->block_addr, table_ctx->blk_exp_size);
+		free(block->level_entry_cnt);
 		free(block);
 		block = NULL;
 	}
 
+	free(table_ctx->level_block_bitmap);
 	if (mapt_info->block_base.table_ctx != NULL) {
 		free(mapt_info->block_base.table_ctx);
 		mapt_info->block_base.table_ctx = NULL;
