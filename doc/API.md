@@ -36,8 +36,8 @@
       - unsigned int input: Only 0 and 1 are allowed.if input is 0, input tokenVal would be used; else ummu library would         generate token value.
       - unsigned int tokenVal: When input is 1, this would be used.
     - enum ummu_ebit_state
-      - UMMU_EBIT_OFF: enable ebit check
-      - UMMU_EBIT_ON: disable ebit check
+      - UMMU_EBIT_ON: enable ebit check
+      - UMMU_EBIT_OFF: disable ebit check
 
 # ummu_ungrant(uint32_t tid, void \*data, size_t size)
   Remove access permissions for one memory segment, and unbind memory segment with tid.
@@ -57,7 +57,7 @@
       - tid: allocated by interface ummu_allocate_tid
       - data: the start of virtual address
       - size: the memory size intended to be ungranted
-      - taken_val: intend to be removed token value
+      - token_val: intend to be removed token value
     - return value:
       0: success
       others: failed
