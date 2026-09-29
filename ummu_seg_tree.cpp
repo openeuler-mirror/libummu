@@ -72,7 +72,7 @@ void *ummu_find_seg(uint64_t left, uint64_t size, uint64_t seg_tree, int *comp)
 int ummu_delete_seg(uint64_t left, uint64_t size, uint64_t seg_tree, clear_seg_node cleaner)
 {
 	auto table = reinterpret_cast<RangeTable *>(seg_tree);
-	auto find_ret = table->find(Range(left, left + size));
+	auto find_ret = table->find(Range(left, size));
 	if ((find_ret != table->end()) &&
 		(find_ret->first.left == left) &&
 		(find_ret->first.right == (left + size))) {
