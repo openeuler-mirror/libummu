@@ -51,7 +51,6 @@ static int ummu_mapt_table_ctx_init(struct ummu_mapt_info *mapt_info, struct umm
 	struct ummu_mapt_table_ctx *table_ctx;
 	struct ummu_mapt_block *block = NULL;
 	struct ummu_mapt_table_node pre_node;
-	struct ummu_mapt_table_node *root;
 	int ret;
 
 	table_ctx = (struct ummu_mapt_table_ctx *)malloc(sizeof(struct ummu_mapt_table_ctx));
@@ -84,9 +83,8 @@ static int ummu_mapt_table_ctx_init(struct ummu_mapt_info *mapt_info, struct umm
 		goto err_level_block_bitmap;
 	}
 
-	root = ummu_alloc_level_block(mapt_info, &pre_node, block);
-	if (root == NULL) {
-		ret = -errno;
+	ret = ummu_alloc_level_block(mapt_info, &pre_node, block);
+	if (ret != 0) {
 		goto err_alloc_level_block;
 	}
 
@@ -219,7 +217,7 @@ static int ummu_get_token(struct ummu_token_info *token, uint32_t *value)
 		ret = ummu_gen_random(value);
 		(void)pthread_mutex_unlock(&g_random_mutex);
 		if (ret != 0) {
-			return -EINVAL;
+			return ret;
 		}
 		token->tokenVal = *value;
 		return 0;
@@ -369,8 +367,8 @@ static int ummu_table_fill_head_node_free_bit(struct ummu_data_info *data_info, 
 {
 	struct ummu_mapt_block * mapt_blk =
 	(struct ummu_mapt_block *)data_info->mapt_info->block_base.table_ctx->mapt_block_array[pre_node->next_lv_index];
-	struct ummu_mapt_table_node *next_lvl_blk_base;
 	uint64_t lvl_offset = TABLE_LVL_OFFSET(pre_node->next_lv_offset_low, pre_node->next_lv_offset_high);
+	int ret;
 
 	if (cur_node->valid == 0) {
 		ummu_table_fill_node(cur_node, node_base, node_limit, data_info, true);
@@ -386,9 +384,9 @@ static int ummu_table_fill_head_node_free_bit(struct ummu_data_info *data_info, 
 	}
 
 	if (cur_node->type == 1) {
-		next_lvl_blk_base = ummu_alloc_level_block(data_info->mapt_info, cur_node, mapt_blk);
-		if (next_lvl_blk_base == NULL) {
-			return -errno;
+		ret = ummu_alloc_level_block(data_info->mapt_info, cur_node, mapt_blk);
+		if (ret != 0) {
+			return ret;
 		}
 		cur_node->type = 0;
 	}
@@ -419,9 +417,9 @@ static int ummu_table_fill_head_node(struct ummu_data_info *data_info, uint32_t 
 {
 	struct ummu_mapt_block * mapt_blk =
 	(struct ummu_mapt_block *)data_info->mapt_info->block_base.table_ctx->mapt_block_array[pre_node->next_lv_index];
-	struct ummu_mapt_table_node *next_lvl_blk_base;
 	uint64_t lvl_offset = TABLE_LVL_OFFSET(pre_node->next_lv_offset_low, pre_node->next_lv_offset_high);
 	uint64_t cur_base, cur_limit;
+	int ret;
 
 	cur_base = ADDR_FULL(cur_node->base_low, cur_node->base_high);
 	cur_limit = ADDR_FULL(cur_node->limit_low, cur_node->limit_high);
@@ -433,9 +431,9 @@ static int ummu_table_fill_head_node(struct ummu_data_info *data_info, uint32_t 
 		}
 
 		if (cur_node->type == 1) {
-			next_lvl_blk_base = ummu_alloc_level_block(data_info->mapt_info, cur_node, mapt_blk);
-			if (next_lvl_blk_base == NULL) {
-				return -errno;
+			ret = ummu_alloc_level_block(data_info->mapt_info, cur_node, mapt_blk);
+			if (ret != 0) {
+				return ret;
 			}
 			cur_node->type = 0;
 		}

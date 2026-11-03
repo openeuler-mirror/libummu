@@ -13,6 +13,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <errno.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,7 +38,9 @@ void ummu_init_log_level(void);
 
 #define UMMU_LOG(l, ...)						    \
 	if (!ummu_log_drop(UMMU_VLOG_LEVEL_##l)) {			      \
+		int ummu_errno_save = errno;				      \
 		ummu_log(__func__, __LINE__, UMMU_VLOG_LEVEL_##l, __VA_ARGS__);     \
+		errno = ummu_errno_save;				      \
 	}
 
 #define UMMU_MAPT_INFO_LOG(...) UMMU_LOG(INFO, __VA_ARGS__)
