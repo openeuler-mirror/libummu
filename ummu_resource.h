@@ -19,7 +19,7 @@ void ummu_free_core_buf(enum ummu_buf_mode mode, void *buf, size_t size);
 
 int ummu_get_tid(int fd, struct ummu_tid_info *info);
 void ummu_put_tid(int fd, unsigned int tid);
-void ummu_kcmd_plbi(int fd, struct ummu_tid_info *info, uint32_t opcode);
+int ummu_kcmd_plbi(int fd, struct ummu_tid_info *info, uint32_t opcode);
 
 #endif
 
