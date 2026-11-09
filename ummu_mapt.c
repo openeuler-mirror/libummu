@@ -398,6 +398,7 @@ static void ummu_table_type_switch_plbi(struct ummu_data_info *data_info, uint64
 					uint64_t node_limit, uint32_t level)
 {
 	uint64_t va, size, full_addr;
+	int ret;
 
 	if (data_info->lvl < MAX_LEVEL_INDEX && !data_info->head_flag) {
 		full_addr = data_info->data_limit;
@@ -408,7 +409,10 @@ static void ummu_table_type_switch_plbi(struct ummu_data_info *data_info, uint64
 	va = (full_addr & ~GET_LEVEL_RANGE_MASK(level)) | node_base;
 	size = node_limit - node_base + 1;
 
-	ummu_plbi_va_cmd(data_info->mapt_info, va, size);
+	ret = ummu_plbi_va_cmd(data_info->mapt_info, va, size);
+	if (ret != 0) {
+		UMMU_MAPT_WARN_LOG("plbi_va_cmd failed for type switch, ret=%d.\n", ret);
+	}
 }
 
 static int ummu_table_fill_head_node(struct ummu_data_info *data_info, uint32_t level,
@@ -927,6 +931,7 @@ static int ummu_table_op(struct ummu_mapt_info *mapt_info, struct ummu_data_info
 static int ummu_grant_imp(struct ummu_mapt_info *mapt_info, struct ummu_data_info *data)
 {
 	int ret;
+	int plbi_ret;
 
 	if (mapt_info->mode == MAPT_MODE_ENTRY) {
 		ret = ummu_entry_op(mapt_info, data);
@@ -942,7 +947,10 @@ static int ummu_grant_imp(struct ummu_mapt_info *mapt_info, struct ummu_data_inf
 	}
 
 	if (data->op == UMMU_ADD_TOKEN || ret != 0) {
-		ummu_plbi_va_cmd(mapt_info, data->data_base, data->data_size);
+		plbi_ret = ummu_plbi_va_cmd(mapt_info, data->data_base, data->data_size);
+		if (plbi_ret != 0) {
+			UMMU_MAPT_WARN_LOG("plbi_va_cmd failed in grant, ret=%d.\n", plbi_ret);
+		}
 	}
 
 	return ret;
@@ -1069,6 +1077,7 @@ static int ummu_ungrant_data(uint32_t tid, void *data, size_t size, uint32_t tok
 	struct ummu_data_info data_info = {0};
 	enum ummu_grant_op_type opt;
 	int ret;
+	int plbi_ret;
 
 	if (size == 0) {
 		UMMU_MAPT_ERROR_LOG("Ummu ungrant size is zero.\n");
@@ -1119,7 +1128,10 @@ static int ummu_ungrant_data(uint32_t tid, void *data, size_t size, uint32_t tok
 		ret = ummu_update_info(opt, mapt_info, &data_info);
 	}
 
-	ummu_plbi_va_cmd(mapt_info, data_info.data_base, data_info.data_size);
+	plbi_ret = ummu_plbi_va_cmd(mapt_info, data_info.data_base, data_info.data_size);
+	if (plbi_ret != 0) {
+		UMMU_MAPT_WARN_LOG("plbi_va_cmd failed in ungrant, ret=%d.\n", plbi_ret);
+	}
 	(void)pthread_mutex_unlock(&ummu_ctx->ctx_mutex);
 	(void)pthread_mutex_unlock(&mapt_info->mapt_mutex);
 
