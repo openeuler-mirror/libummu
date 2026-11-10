@@ -528,8 +528,7 @@ static int ummu_table_clear_head_node(struct ummu_data_info *data_info, uint32_t
 	cur_limit = ADDR_FULL(cur_node->limit_low, cur_node->limit_high);
 	if (!IS_RTE_IN_USE(cur_base) && !IS_RTE_IN_USE(cur_limit)) {
 		if (cur_node->type == 1) {
-			UMMU_MAPT_ERROR_LOG("Next level not exist.\n");
-			return -EINVAL;
+			return -ENOENT;
 		}
 
 		ret = ummu_table_clear_node_by_level(data_info, level + 1U, cur_node, node_base, node_limit);
@@ -557,8 +556,7 @@ static int ummu_table_clear_head_node(struct ummu_data_info *data_info, uint32_t
 	}
 
 	if (cur_node->type == 1) {
-		UMMU_MAPT_ERROR_LOG("Next level not exist.\n");
-		return -EINVAL;
+		return -EFAULT;
 	}
 
 	ret = ummu_table_clear_node_by_level(data_info, level + 1U, cur_node, node_base, node_limit);

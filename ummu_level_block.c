@@ -22,6 +22,7 @@ static int ummu_alloc_new_mapt_block(struct ummu_mapt_info *mapt_info,
 	void *block_addr;
 
 	if (mapt_info->block_base.table_ctx->expan != true && block_index != 0) {
+		errno = ERANGE;
 		UMMU_MAPT_DEBUG_LOG("alloc new level_block failed, expan=%d, block_index=%u.\n",
 				     mapt_info->block_base.table_ctx->expan, block_index);
 		return -ERANGE;
