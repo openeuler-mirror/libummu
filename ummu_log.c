@@ -132,6 +132,5 @@ void ummu_init_log_level(void)
 		g_loglevel = (ummu_vlog_level_t)input_log_level;
 	}
 
-	UMMU_MAPT_INFO_LOG("UMMU log level = %u.\n", g_loglevel);
 	(void)fclose(fd);
 }

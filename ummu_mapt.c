@@ -960,7 +960,6 @@ static struct ummu_mapt_info *get_mapt_info_by_tid(struct ummu_ctx_info *ummu_ct
 
 	mapt_info = (struct ummu_mapt_info *)ummu_map_get(ummu_ctx->mapt_map, tid);
 	if (mapt_info == NULL || mapt_info->valid == 0 || ummu_check_mode(mapt_info->mode) != 0) {
-		UMMU_MAPT_ERROR_LOG("Mapt info %s null.\n", mapt_info == NULL ? "is" : "is not");
 		return NULL;
 	}
 
@@ -1016,7 +1015,7 @@ int ummu_grant(uint32_t tid, void *data, size_t data_size, enum ummu_mapt_perm p
 	mapt_info = get_mapt_info_by_tid(ummu_ctx, tid);
 	if (mapt_info == NULL) {
 		(void)pthread_mutex_unlock(&ummu_ctx->ctx_mutex);
-		return -EINVAL;
+		return -ENODEV;
 	}
 	(void)pthread_mutex_lock(&mapt_info->mapt_mutex);
 
@@ -1036,7 +1035,6 @@ int ummu_grant(uint32_t tid, void *data, size_t data_size, enum ummu_mapt_perm p
 
 	opt = ummu_grant_check(mapt_info, &data_info);
 	if (opt == UMMU_OP_END) {
-		UMMU_MAPT_ERROR_LOG("Check grant failed.\n");
 		(void)pthread_mutex_unlock(&ummu_ctx->ctx_mutex);
 		(void)pthread_mutex_unlock(&mapt_info->mapt_mutex);
 		return -EINVAL;
@@ -1092,7 +1090,7 @@ static int ummu_ungrant_data(uint32_t tid, void *data, size_t size, uint32_t tok
 	mapt_info = get_mapt_info_by_tid(ummu_ctx, tid);
 	if (mapt_info == NULL) {
 		(void)pthread_mutex_unlock(&ummu_ctx->ctx_mutex);
-		return -EINVAL;
+		return -ENODEV;
 	}
 	(void)pthread_mutex_lock(&mapt_info->mapt_mutex);
 
@@ -1237,11 +1235,11 @@ int ummu_free_tid(uint32_t tid)
 	(void)ummu_map_del(ummu_ctx->mapt_map, tid);
 	(void)pthread_mutex_unlock(&mapt_info->mapt_mutex);
 	ummu_mapt_destroy(mapt_info);
-	ummu_put_tid(ummu_ctx->shared_fd, tid);
+	ret = ummu_put_tid(ummu_ctx->shared_fd, tid);
 	(void)pthread_mutex_unlock(&ummu_ctx->ctx_mutex);
-	UMMU_MAPT_INFO_LOG("free tid = %u\n", tid);
+	UMMU_MAPT_DEBUG_LOG("free tid = %u ret = %d\n", tid, ret);
 
-	return 0;
+	return ret;
 }
 
 int ummu_allocate_tid(struct ummu_tid_attr *tid_attr, uint32_t *tid)
@@ -1289,7 +1287,7 @@ int ummu_allocate_tid(struct ummu_tid_attr *tid_attr, uint32_t *tid)
 	}
 	(void)pthread_mutex_unlock(&ummu_ctx->ctx_mutex);
 	*tid = info.tid;
-	UMMU_MAPT_INFO_LOG("allocate tid = %u, mapt_mode = %u\n", info.tid, info.mode);
+	UMMU_MAPT_DEBUG_LOG("allocate tid = %u, mapt_mode = %u\n", info.tid, info.mode);
 
 	return 0;
 
