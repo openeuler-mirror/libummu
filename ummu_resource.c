@@ -75,7 +75,7 @@ int ummu_get_tid(int fd, struct ummu_tid_info *info)
 	return ioctl(fd, UMMU_IOCALLOC_TID, info);
 }
 
-void ummu_put_tid(int fd, unsigned int tid)
+int ummu_put_tid(int fd, unsigned int tid)
 {
 	struct ummu_tid_info info = {
 		.tid = tid,
@@ -84,13 +84,10 @@ void ummu_put_tid(int fd, unsigned int tid)
 
 	if (fd < 0) {
 		UMMU_MAPT_ERROR_LOG("Shared fd is invalid.\n");
-		return;
+		return -ENOENT;
 	}
 
-	ret = ioctl(fd, UMMU_IOCFREE_TID, &info);
-	if (ret != 0) {
-		UMMU_MAPT_ERROR_LOG("Failed to put tid, ret = %d.\n", ret);
-	}
+	return ioctl(fd, UMMU_IOCFREE_TID, &info);
 }
 
 int ummu_kcmd_plbi(int fd, struct ummu_tid_info *info, uint32_t opcode)
