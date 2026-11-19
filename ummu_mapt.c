@@ -1160,15 +1160,14 @@ static void ummu_mapt_table_ctx_uninit(struct ummu_mapt_info *mapt_info)
 
 	FOR_EACH_SET_BIT(idx, table_ctx->level_block_bitmap, table_ctx->level_block_bitmap_size) {
 		block_id = idx / table_ctx->lvl_block_cnt;
-		if ((idx % table_ctx->lvl_block_cnt) != 0 || block_id == 0) {
+		if (block_id == 0) {
 			continue;
 		}
 		block = (struct ummu_mapt_block *)table_ctx->mapt_block_array[block_id];
-		table_ctx->mapt_block_array[block_id] = NULL;
 		if (block == NULL) {
-			UMMU_MAPT_ERROR_LOG("Free block id = %lu failed.\n", block_id);
 			continue;
 		}
+		table_ctx->mapt_block_array[block_id] = NULL;
 		ummu_free_core_buf(BASE_MODE_TABLE_BLOCK, (void *)block->block_addr, table_ctx->blk_exp_size);
 		free(block->level_entry_cnt);
 		free(block);
