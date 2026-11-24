@@ -80,7 +80,6 @@ int ummu_put_tid(int fd, unsigned int tid)
 	struct ummu_tid_info info = {
 		.tid = tid,
 	};
-	int ret;
 
 	if (fd < 0) {
 		UMMU_MAPT_ERROR_LOG("Shared fd is invalid.\n");
