@@ -75,31 +75,27 @@ int ummu_get_tid(int fd, struct ummu_tid_info *info)
 	return ioctl(fd, UMMU_IOCALLOC_TID, info);
 }
 
-void ummu_put_tid(int fd, unsigned int tid)
+int ummu_put_tid(int fd, unsigned int tid)
 {
 	struct ummu_tid_info info = {
 		.tid = tid,
 	};
-	int ret;
 
 	if (fd < 0) {
 		UMMU_MAPT_ERROR_LOG("Shared fd is invalid.\n");
-		return;
+		return -ENOENT;
 	}
 
-	ret = ioctl(fd, UMMU_IOCFREE_TID, &info);
-	if (ret != 0) {
-		UMMU_MAPT_ERROR_LOG("Failed to put tid, ret = %d.\n", ret);
-	}
+	return ioctl(fd, UMMU_IOCFREE_TID, &info);
 }
 
-void ummu_kcmd_plbi(int fd, struct ummu_tid_info *info, uint32_t opcode)
+int ummu_kcmd_plbi(int fd, struct ummu_tid_info *info, uint32_t opcode)
 {
 	int ret = 0;
 
 	if (fd < 0) {
 		UMMU_MAPT_ERROR_LOG("Shared fd is invalid.\n");
-		return;
+		return -ENOENT;
 	}
 
 	if (opcode == PLBI_VA_OP) {
@@ -108,10 +104,14 @@ void ummu_kcmd_plbi(int fd, struct ummu_tid_info *info, uint32_t opcode)
 		ret = ioctl(fd, UMMU_IOCPLBI_ALL, info);
 	} else {
 		UMMU_MAPT_WARN_LOG("Invalid plbi opcode.\n");
+		return -EINVAL;
 	}
 
 	if (ret != 0) {
-		UMMU_MAPT_ERROR_LOG("Issue opcode = %u plbi failed, ret = %d.\n", opcode, ret);
+		UMMU_MAPT_ERROR_LOG("Issue opcode = %u plbi failed, ret = %d, errno = %d.\n", opcode, ret, errno);
+		return -EAGAIN;
 	}
+
+	return 0;
 }
 

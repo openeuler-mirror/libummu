@@ -79,7 +79,6 @@ static void child_process_after_fork(void)
 
 __attribute__((destructor)) static void ummu_uninit(void)
 {
-	UMMU_MAPT_INFO_LOG("UMMU uninit.\n");
 	pthread_mutex_lock(&g_ummu_ctx.ctx_mutex);
 	if (g_ummu_ctx.mapt_map != NULL) {
 		ummu_map_clear(g_ummu_ctx.mapt_map, ummu_mapt_info_destroy);

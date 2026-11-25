@@ -15,25 +15,23 @@
 #include "ummu_resource.h"
 #include "ummu_level_block.h"
 
-static struct ummu_mapt_block *ummu_alloc_new_mapt_block(struct ummu_mapt_info *mapt_info,
-	size_t block_size, uint32_t block_index)
+static int ummu_alloc_new_mapt_block(struct ummu_mapt_info *mapt_info,
+	size_t block_size, uint32_t block_index, struct ummu_mapt_block **out)
 {
 	struct ummu_mapt_block *block;
 	void *block_addr;
 
-	errno = 0;
 	if (mapt_info->block_base.table_ctx->expan != true && block_index != 0) {
 		errno = ERANGE;
 		UMMU_MAPT_DEBUG_LOG("alloc new level_block failed, expan=%d, block_index=%u.\n",
 				     mapt_info->block_base.table_ctx->expan, block_index);
-		return NULL;
+		return -ERANGE;
 	}
 
 	block = (struct ummu_mapt_block *)calloc(1, sizeof(struct ummu_mapt_block));
 	if (block == NULL) {
 		UMMU_MAPT_ERROR_LOG("Alloc mapt block failed, errno = %d.\n", errno);
-		errno = ENOMEM;
-		return NULL;
+		return -ENOMEM;
 	}
 
 	block->lvl_block_cnt = mapt_info->block_base.table_ctx->lvl_block_cnt;
@@ -41,8 +39,7 @@ static struct ummu_mapt_block *ummu_alloc_new_mapt_block(struct ummu_mapt_info *
 	if (block->level_entry_cnt == NULL) {
 		UMMU_MAPT_ERROR_LOG("Alloc level_entry_cnt failed.\n");
 		free(block);
-		errno = ENOMEM;
-		return NULL;
+		return -ENOMEM;
 	}
 
 	block_addr = ummu_get_core_buf(mapt_info->tid, BASE_MODE_TABLE_BLOCK, block_size,
@@ -51,8 +48,7 @@ static struct ummu_mapt_block *ummu_alloc_new_mapt_block(struct ummu_mapt_info *
 		free(block->level_entry_cnt);
 		free(block);
 		UMMU_MAPT_ERROR_LOG("Get core buf failed, errno = %d.\n", errno);
-		errno = ENOMEM;
-		return NULL;
+		return -ENOMEM;
 	}
 
 	block->blk_size = block_size;
@@ -64,10 +60,11 @@ static struct ummu_mapt_block *ummu_alloc_new_mapt_block(struct ummu_mapt_info *
 	mapt_info->block_base.table_ctx->mapt_block_array[block_index] = (void *)block;
 	mapt_info->block_base.table_ctx->block_cnt++;
 
-	return block;
+	*out = block;
+	return 0;
 }
 
-struct ummu_mapt_table_node *ummu_alloc_level_block(struct ummu_mapt_info *mapt_info,
+int ummu_alloc_level_block(struct ummu_mapt_info *mapt_info,
 	struct ummu_mapt_table_node *pre_node, struct ummu_mapt_block *pre_node_mapt_block)
 {
 	struct ummu_mapt_table_ctx *table_ctx = mapt_info->block_base.table_ctx;
@@ -75,13 +72,13 @@ struct ummu_mapt_table_node *ummu_alloc_level_block(struct ummu_mapt_info *mapt_
 	struct ummu_mapt_block *mapt_block;
 	size_t block_size;
 	uint32_t level_id;
+	int ret;
 
 	level_id = find_first_zero_bit(table_ctx->level_block_bitmap,
 					   (unsigned long)table_ctx->level_block_bitmap_size);
 	if (level_id >= table_ctx->level_block_bitmap_size) {
-		errno = ERANGE;
 		UMMU_MAPT_ERROR_LOG("Invalid level id.\n");
-		return NULL;
+		return -ERANGE;
 	}
 
 	pre_node->next_block = 0;
@@ -91,9 +88,9 @@ struct ummu_mapt_table_node *ummu_alloc_level_block(struct ummu_mapt_info *mapt_
 	mapt_block = (struct ummu_mapt_block *)table_ctx->mapt_block_array[mapt_block_index];
 	/* the mapt_block corresponding to level_id does not exist. */
 	if (mapt_block == NULL) {
-		mapt_block = ummu_alloc_new_mapt_block(mapt_info, block_size, mapt_block_index);
-		if (mapt_block == NULL) {
-			return NULL;
+		ret = ummu_alloc_new_mapt_block(mapt_info, block_size, mapt_block_index, &mapt_block);
+		if (ret != 0) {
+			return ret;
 		}
 		pre_node->next_block = 1;
 	} else {
@@ -110,7 +107,7 @@ struct ummu_mapt_table_node *ummu_alloc_level_block(struct ummu_mapt_info *mapt_
 	ummu_set_bit(level_id, table_ctx->level_block_bitmap);
 	mapt_block->level_cnt++;
 
-	return (struct ummu_mapt_table_node *)mapt_block->block_addr + next_lv_offset;
+	return 0;
 }
 
 void ummu_free_level_block(struct ummu_mapt_info *mapt_info, struct ummu_mapt_table_node *prev_node)
