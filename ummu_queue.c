@@ -82,7 +82,7 @@ int ummu_send_cmd(struct ummu_mapt_cmd_entry *cmd_plbi, struct ummu_mapt_info *m
 	uint16_t wait_interval = WAIT_NOT_FULL_INTERVAL_US;
 	uint16_t times = MAX_WAIT_NOT_FULL_TIMES;
 	uint16_t pi_wr, pi_sync;
-	int ret;
+	int ret = 0;
 
 	while (queue_has_space(ctrl_page->ucmdq_pi, ctrl_page->ucmdq_ci,
 				mapt_info->queue_ctx.cmd_que_pi_size, CMD_NUM_PER_PLBI * plbi_num) == 0) {
@@ -121,7 +121,7 @@ int ummu_send_cmd(struct ummu_mapt_cmd_entry *cmd_plbi, struct ummu_mapt_info *m
 		}
 		times--;
 		if (times == 0) {
-			UMMU_MAPT_INFO_LOG("Wait psync complete timeout ret = %d.\n", ret);
+			UMMU_MAPT_ERROR_LOG("Wait psync complete timeout ret = %d.\n", ret);
 			break;
 		}
 		(void)usleep(WAIT_CPLQ_INTERVAL_US * (WAIT_CPLQ_TIMES - times));
@@ -129,7 +129,7 @@ int ummu_send_cmd(struct ummu_mapt_cmd_entry *cmd_plbi, struct ummu_mapt_info *m
 
 	UMMU_MAPT_DEBUG_LOG("ummu_index = %u, opcode = 0x%02x, cqe_en = %u, plbi_num = %u.\n", ummu_index,
 				cmd_psync.opcode, (uint32_t)cmd_psync.cqe_en, plbi_num);
-	return 0;
+	return ret;
 }
 
 static uint32_t get_minist_log2size_range(size_t size)
@@ -149,23 +149,28 @@ static uint32_t get_minist_log2size_range(size_t size)
 	return idx;
 }
 
-static void ummu_send_plbi(struct ummu_mapt_cmd_entry *cmd_plbi, struct ummu_mapt_info *mapt_info,
+static int ummu_send_plbi(struct ummu_mapt_cmd_entry *cmd_plbi, struct ummu_mapt_info *mapt_info,
 	struct ummu_tid_info *info)
 {
 	struct ummu_ctx_info *ummu_ctx = get_ummu_ctx();
+	int first_err = 0;
+	int ret;
 
 	if (!mapt_info->kcmd_plbi) {
 		for (uint32_t i = 0; i < mapt_info->queue_ctx.ummu_cnt; i++) {
-			(void)ummu_send_cmd(cmd_plbi, mapt_info, i);
+			ret = ummu_send_cmd(cmd_plbi, mapt_info, i);
+			if (ret != 0 && first_err == 0) {
+				first_err = ret;
+			}
 		}
 
-		return;
+		return first_err;
 	}
 
-	ummu_kcmd_plbi(ummu_ctx->shared_fd, info, cmd_plbi->opcode);
+	return ummu_kcmd_plbi(ummu_ctx->shared_fd, info, cmd_plbi->opcode);
 }
 
-void ummu_plbi_va_cmd(struct ummu_mapt_info *mapt_info, uint64_t va, uint64_t size)
+int ummu_plbi_va_cmd(struct ummu_mapt_info *mapt_info, uint64_t va, uint64_t size)
 {
 	struct ummu_mapt_cmd_entry cmd_va_entry = { 0 };
 	struct ummu_tid_info info = {.tid = mapt_info->tid,
@@ -176,7 +181,7 @@ void ummu_plbi_va_cmd(struct ummu_mapt_info *mapt_info, uint64_t va, uint64_t si
 	cmd_va_entry.range = get_minist_log2size_range(size);
 	cmd_va_entry.addr = va;
 
-	ummu_send_plbi(&cmd_va_entry, mapt_info, &info);
+	return ummu_send_plbi(&cmd_va_entry, mapt_info, &info);
 }
 
 void ummu_plbi_f_bit_cmd(struct ummu_mapt_info *mapt_info, uint32_t next_lvl_idx, uint32_t next_lvl_offset)
@@ -186,7 +191,7 @@ void ummu_plbi_f_bit_cmd(struct ummu_mapt_info *mapt_info, uint32_t next_lvl_idx
 				     .va = 0,
 				     .size = 0};
 
-	cmd_entry.opcode = PLBI_USR_N;
+	cmd_entry.opcode = PLBI_FREE_BIT_OP;
 	cmd_entry.next_lvl_idx = next_lvl_idx;
 	cmd_entry.next_lvl_offset = next_lvl_offset;
 

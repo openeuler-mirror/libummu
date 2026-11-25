@@ -23,14 +23,14 @@ int ummu_gen_random(uint32_t *value)
 	fd = open(UMMU_URANDOM_DEV, O_RDONLY);
 	if (fd < 0) {
 		UMMU_MAPT_ERROR_LOG("Open random fd failed, errno = %d.\n", errno);
-		return -errno;
+		return -EINVAL;
 	}
 
 	ret = read(fd, &random_val, sizeof(uint32_t));
 	if (ret != sizeof(uint32_t)) {
 		UMMU_MAPT_ERROR_LOG("Get random value failed, ret = %d, errno = %d.\n", ret, errno);
 		close(fd);
-		return -errno;
+		return -EINVAL;
 	}
 	close(fd);
 	*value = random_val;
